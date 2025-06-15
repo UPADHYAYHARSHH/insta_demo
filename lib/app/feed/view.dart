@@ -15,119 +15,120 @@ class FeedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          elevation: 0,
+          title: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/app_logo.jpg',
+                  width: 30,
+                  height: 30,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Obx(
+                () => Text(
+                  logic.state.username.value.isNotEmpty
+                      ? logic.state.username.value
+                      : 'InstaDemo',
+                  style: AppTextStyles.h5.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            const SizedBox(width: 8),
+            PopupMenuButton<String>(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.grey100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.more_vert,
+                  color: AppColors.textPrimary,
+                  size: 20,
+                ),
+              ),
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.camera_alt,
-                color: AppColors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Obx(
-              () => Text(
-                logic.username.value.isNotEmpty
-                    ? logic.username.value
-                    : 'InstaDemo',
-                style: AppTextStyles.h5.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          const SizedBox(width: 8),
-          PopupMenuButton<String>(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.grey100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.more_vert,
-                color: AppColors.textPrimary,
-                size: 20,
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            onSelected: (value) async {
-              if (value == 'logout') {
-                logic.showLogoutDialog();
-              }
-            },
-            itemBuilder:
-                (BuildContext context) => [
-                  const PopupMenuItem<String>(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout, color: AppColors.error),
-                        SizedBox(width: 12),
-                        Text(
-                          'Logout',
-                          style: TextStyle(color: AppColors.error),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: Obx(
-        () =>
-            logic.isLoadingInitialData.value
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                  children: [
-                    Expanded(
-                      child: Obx(
-                        () => ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount:
-                              logic.uploadedImages.length +
-                              logic.state.dummyPostCount,
-                          itemBuilder: (context, index) {
-                            if (index < logic.uploadedImages.length) {
-                              return buildUploadedImagePost(
-                                context,
-                                logic.uploadedImages[index],
-                                index,
-                              );
-                            } else {
-                              int dummyPostIndex =
-                                  index - logic.uploadedImages.length;
-                              return buildPostCard(context, dummyPostIndex);
-                            }
-                          },
-                        ),
+              onSelected: (value) async {
+                if (value == 'logout') {
+                  logic.showLogoutDialog();
+                }
+              },
+              itemBuilder:
+                  (BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, color: AppColors.error),
+                          SizedBox(width: 12),
+                          Text(
+                            'Logout',
+                            style: TextStyle(color: AppColors.error),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+            ),
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: Obx(
+          () =>
+              logic.state.isLoadingInitialData.value
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount:
+                                logic.state.uploadedImages.length +
+                                logic.state.dummyPostCount,
+                            itemBuilder: (context, index) {
+                              if (index < logic.state.uploadedImages.length) {
+                                return buildUploadedImagePost(
+                                  context,
+                                  logic.state.uploadedImages[index],
+                                  index,
+                                );
+                              } else {
+                                int dummyPostIndex =
+                                    index - logic.state.uploadedImages.length;
+                                return buildPostCard(context, dummyPostIndex);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+        ),
+        floatingActionButton: buildFloatingActionButton(context),
       ),
-      floatingActionButton: buildFloatingActionButton(context),
     );
   }
 
   Widget buildPostCard(BuildContext context, int index) {
     if (index < 0 ||
-        index >= logic.isLikedList.length ||
-        index >= logic.dummyPostComments.length) {
+        index >= logic.state.isLikedList.length ||
+        index >= logic.state.dummyPostComments.length) {
       return Container();
     }
 
@@ -205,8 +206,8 @@ class FeedPage extends StatelessWidget {
             ),
             child: Image.memory(
               base64Decode(
-                logic.dummyPostBase64Images[index %
-                    logic.dummyPostBase64Images.length],
+                logic.state.dummyPostBase64Images[index %
+                    logic.state.dummyPostBase64Images.length],
               ),
               fit: BoxFit.cover,
               width: double.infinity,
@@ -233,12 +234,12 @@ class FeedPage extends StatelessWidget {
                       child: Obx(
                         () => buildActionButton(
                           icon:
-                              logic.isLikedList[index]
+                              logic.state.isLikedList[index]
                                   ? Icons.favorite
                                   : Icons.favorite_border,
-                          text: '${logic.likeCounts[index]} likes',
+                          text: '${logic.state.likeCounts[index]} likes',
                           color:
-                              logic.isLikedList[index]
+                              logic.state.isLikedList[index]
                                   ? AppColors.error
                                   : AppColors.textSecondary,
                           onTap: () => logic.onLikeTapped(index),
@@ -251,7 +252,7 @@ class FeedPage extends StatelessWidget {
                         () => buildActionButton(
                           icon: Icons.chat_bubble_outline,
                           text:
-                              '${logic.dummyPostComments[index].length} comments',
+                              '${logic.state.dummyPostComments[index].length} comments',
                           color: AppColors.textSecondary,
                           onTap:
                               () => showCommentsDialog(context, index, false),
@@ -297,6 +298,12 @@ class FeedPage extends StatelessWidget {
     String base64Image,
     int index,
   ) {
+    if (index < 0 ||
+        index >= logic.state.uploadedImageIsLikedList.length ||
+        index >= logic.state.uploadedImageComments.length) {
+      return Container();
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -333,7 +340,7 @@ class FeedPage extends StatelessWidget {
                       color: AppColors.white,
                     ),
                     child: CircleAvatar(
-                      backgroundImage:AssetImage(
+                      backgroundImage: AssetImage(
                         'assets/images/joshua-reddekopp-SyYmXSDnJ54-unsplash.jpg',
                       ),
                     ),
@@ -346,8 +353,8 @@ class FeedPage extends StatelessWidget {
                     children: [
                       Obx(
                         () => Text(
-                          logic.username.value.isNotEmpty
-                              ? logic.username.value
+                          logic.state.username.value.isNotEmpty
+                              ? logic.state.username.value
                               : 'Your Username',
                           style: AppTextStyles.label.copyWith(
                             fontWeight: FontWeight.w600,
@@ -357,7 +364,7 @@ class FeedPage extends StatelessWidget {
                       Text(
                         DateFormat(
                           'dd/MM/yyyy HH:mm',
-                        ).format(logic.uploadedImageTimestamps[index]),
+                        ).format(logic.state.uploadedImageTimestamps[index]),
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -399,12 +406,13 @@ class FeedPage extends StatelessWidget {
                       child: Obx(
                         () => buildActionButton(
                           icon:
-                              logic.uploadedImageIsLikedList[index]
+                              logic.state.uploadedImageIsLikedList[index]
                                   ? Icons.favorite
                                   : Icons.favorite_border,
-                          text: '${logic.uploadedImageLikeCounts[index]} likes',
+                          text:
+                              '${logic.state.uploadedImageLikeCounts[index]} likes',
                           color:
-                              logic.uploadedImageIsLikedList[index]
+                              logic.state.uploadedImageIsLikedList[index]
                                   ? AppColors.error
                                   : AppColors.textSecondary,
                           onTap: () => logic.onUploadedImageLikeTapped(index),
@@ -417,7 +425,7 @@ class FeedPage extends StatelessWidget {
                         () => buildActionButton(
                           icon: Icons.chat_bubble_outline,
                           text:
-                              '${logic.uploadedImageComments[index].length} comments',
+                              '${logic.state.uploadedImageComments[index].length} comments',
                           color: AppColors.textSecondary,
                           onTap: () => showCommentsDialog(context, index, true),
                         ),
@@ -445,8 +453,8 @@ class FeedPage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Obx(
                   () => Text(
-                    logic.uploadedImageCaptions[index].isNotEmpty
-                        ? logic.uploadedImageCaptions[index]
+                    logic.state.uploadedImageCaptions[index].isNotEmpty
+                        ? logic.state.uploadedImageCaptions[index]
                         : 'No caption provided.',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textPrimary,
@@ -523,7 +531,11 @@ class FeedPage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              leading: Image.asset(
+                'assets/images/app_logo.jpg',
+                width: 24,
+                height: 24,
+              ),
               title: Text('Camera', style: AppTextStyles.bodyMedium),
               onTap: () async {
                 Get.back();
@@ -593,7 +605,7 @@ class FeedPage extends StatelessWidget {
           ),
           style: AppTextStyles.bodySmall,
           maxLines: 3,
-          maxLength: 200, // Limit caption length
+          maxLength: 200,
         ),
         actions: [
           TextButton(
@@ -606,7 +618,7 @@ class FeedPage extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Get.back();
-              // Process the already-selected image with the caption
+
               await logic.processImage(image, captionController.text);
             },
             child: Text(
@@ -632,206 +644,225 @@ class FeedPage extends StatelessWidget {
         builder: (BuildContext context, StateSetter setState) {
           List<Map<String, String>> comments =
               isUploadedImagePost
-                  ? logic.uploadedImageComments[postIndex]
-                  : logic.dummyPostComments[postIndex];
-          return Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.7,
-            ),
-            decoration: const BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-                  left: 16,
-                  right: 16,
-                  top: 16,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Comments',
-                      style: AppTextStyles.h6.copyWith(
-                        fontWeight: FontWeight.bold,
+                  ? logic.state.uploadedImageComments[postIndex]
+                  : logic.state.dummyPostComments[postIndex];
+          return GestureDetector(
+            onTap: () {
+              FocusScope.of(context).unfocus();
+            },
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Comments',
+                        style: AppTextStyles.h6.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Flexible(
-                      child:
-                          comments.isEmpty
-                              ? Center(
-                                child: Text(
-                                  'No comments yet.',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              )
-                              : ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: comments.length,
-                                itemBuilder: (context, index) {
-                                  final commentData = comments[index];
-                                  final commentUsername =
-                                      commentData['username'] ?? 'Anonymous';
-                                  final commentText =
-                                      commentData['comment'] ?? '';
-                                  final commentTimestamp =
-                                      commentData['timestamp'] != null
-                                          ? DateFormat(
-                                            'dd/MM/yyyy HH:mm',
-                                          ).format(
-                                            DateTime.parse(
-                                              commentData['timestamp']!,
-                                            ),
-                                          )
-                                          : 'Just now';
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8.0,
+                      const SizedBox(height: 16),
+                      Flexible(
+                        child:
+                            comments.isEmpty
+                                ? Center(
+                                  child: Text(
+                                    'No comments yet.',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: AppColors.textSecondary,
                                     ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 16,
-                                          backgroundColor: AppColors.grey100,
-                                          child: Text(
-                                            commentUsername.isNotEmpty
-                                                ? commentUsername[0]
-                                                    .toUpperCase()
-                                                : 'A',
-                                            style: AppTextStyles.bodySmall
-                                                .copyWith(
-                                                  color: AppColors.textPrimary,
-                                                ),
+                                  ),
+                                )
+                                : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: comments.length,
+                                  itemBuilder: (context, index) {
+                                    final commentData = comments[index];
+                                    final commentUsername =
+                                        commentData['username'] ?? 'Anonymous';
+                                    final commentText =
+                                        commentData['comment'] ?? '';
+                                    final commentTimestamp =
+                                        commentData['timestamp'] != null
+                                            ? DateFormat(
+                                              'dd/MM/yyyy HH:mm',
+                                            ).format(
+                                              DateTime.parse(
+                                                commentData['timestamp']!,
+                                              ),
+                                            )
+                                            : 'Just now';
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 16,
+                                            backgroundColor: AppColors.grey100,
+                                            child: Text(
+                                              commentUsername.isNotEmpty
+                                                  ? commentUsername[0]
+                                                      .toUpperCase()
+                                                  : 'A',
+                                              style: AppTextStyles.bodySmall
+                                                  .copyWith(
+                                                    color:
+                                                        AppColors.textPrimary,
+                                                  ),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      commentUsername,
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Flexible(
+                                                      child: Text(
+                                                        commentUsername,
+                                                        style: AppTextStyles
+                                                            .bodyMedium
+                                                            .copyWith(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color:
+                                                                  AppColors
+                                                                      .textPrimary,
+                                                            ),
+                                                        maxLines: 1,
+                                                        overflow:
+                                                            TextOverflow
+                                                                .ellipsis,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      commentTimestamp,
                                                       style: AppTextStyles
-                                                          .bodyMedium
+                                                          .caption
                                                           .copyWith(
-                                                            fontWeight:
-                                                                FontWeight.bold,
                                                             color:
                                                                 AppColors
-                                                                    .textPrimary,
+                                                                    .textSecondary,
                                                           ),
                                                       maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
+                                                      textAlign:
+                                                          TextAlign.right,
                                                     ),
-                                                  ),
-                                                  Text(
-                                                    commentTimestamp,
-                                                    style: AppTextStyles.caption
-                                                        .copyWith(
-                                                          color:
-                                                              AppColors
-                                                                  .textSecondary,
-                                                        ),
-                                                    maxLines: 1,
-                                                    textAlign: TextAlign.right,
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                commentText,
-                                                style: AppTextStyles.bodyMedium
-                                                    .copyWith(
-                                                      color:
-                                                          AppColors.textPrimary,
-                                                    ),
-                                              ),
-                                            ],
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  commentText,
+                                                  style: AppTextStyles
+                                                      .bodyMedium
+                                                      .copyWith(
+                                                        color:
+                                                            AppColors
+                                                                .textPrimary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: commentController,
+                              decoration: InputDecoration(
+                                hintText: 'Add a comment...',
+                                hintStyle: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: AppColors.grey100,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                               ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: commentController,
-                            decoration: InputDecoration(
-                              hintText: 'Add a comment...',
-                              hintStyle: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.grey100,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
+                              style: AppTextStyles.bodySmall,
+                              maxLines: 1,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (value) {
+                                logic.addComment(
+                                  postIndex,
+                                  isUploadedImagePost,
+                                  commentController.text,
+                                );
+                                commentController.clear();
+                                FocusScope.of(context).unfocus();
+                              },
                             ),
-                            style: AppTextStyles.bodyMedium,
-                            maxLines: null,
-                            textInputAction: TextInputAction.newline,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (commentController.text.isNotEmpty) {
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
                               logic.addComment(
                                 postIndex,
                                 isUploadedImagePost,
                                 commentController.text,
                               );
                               commentController.clear();
-                              setState(() {});
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
+                              FocusScope.of(context).unfocus();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Post',
+                                style: AppTextStyles.buttonMedium.copyWith(
+                                  color: AppColors.white,
+                                ),
+                              ),
                             ),
                           ),
-                          child: Text(
-                            'Post',
-                            style: AppTextStyles.buttonMedium.copyWith(
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

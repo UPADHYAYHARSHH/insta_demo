@@ -1,4 +1,3 @@
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:get/get.dart';
 import 'package:insta_demo/app/feed/state.dart';
 import 'package:insta_demo/utils/database_helper.dart';
@@ -6,138 +5,111 @@ import 'package:insta_demo/utils/app_constants.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:universal_html/html.dart' as html;
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:typed_data';
+import 'package:gal/gal.dart';
 
-import '../../utils/app_colors.dart';
-import '../../utils/text_styles.dart' show AppTextStyles;
 import '../login/view.dart';
 
 class FeedLogic extends GetxController {
   final FeedState state = FeedState();
-  var username = RxString('');
-  var uploadedImages = <String>[].obs; // Store base64 strings
-  var uploadedImageTimestamps = <DateTime>[].obs;
-  var uploadedImageCaptions = <String>[].obs; // Store captions
-  var isLikedList = List<bool>.generate(8, (index) => false).obs;
-  var likeCounts = List<int>.generate(8, (index) => 125 + (index * 23)).obs;
-  var uploadedImageIsLikedList = <bool>[].obs;
-  var uploadedImageLikeCounts = <int>[].obs;
-  var dummyPostComments =
-      List<List<Map<String, String>>>.generate(8, (index) => []).obs;
-  var uploadedImageComments = <List<Map<String, String>>>[].obs;
-  var isLoadingInitialData = true.obs; // New loading indicator for initial data
-  var dummyPostBase64Images =
-      <String>[].obs; // Store base64 strings of dummy images
-
-  final List<String> _dummyImagePaths = [
-    'assets/images/joshua-reddekopp-SyYmXSDnJ54-unsplash.jpg',
-    'assets/images/mohammad-rahmani-LrxSl4ZxoRs-unsplash.jpg',
-    'assets/images/arnold-francisca-f77Bh3inUpE-unsplash.jpg',
-    'assets/images/rear-view-programmer-working-all-night-long.jpg',
-    'assets/images/computer-program-coding-screen.jpg',
-  ];
-
   final ImagePicker _picker = ImagePicker();
 
   @override
   void onInit() async {
     super.onInit();
-    await DatabaseHelper.init(); // Ensure Hive is initialized
+    await DatabaseHelper.init();
     _loadDataFromHive();
-    await _loadDummyImages(); // Load dummy images from assets
-    isLoadingInitialData.value = false; // Set to false after initial data load
+    await _loadDummyImages();
+    state.isLoadingInitialData.value = false;
   }
 
   void setUsername(String newUsername) {
-    username.value = newUsername;
+    state.username.value = newUsername;
     DatabaseHelper.updateData('current_username', newUsername);
-    _loadDataFromHive(); // Reload user-specific data
+    _loadDataFromHive();
   }
 
   void _loadDataFromHive() {
-    username.value =
+    state.username.value =
         DatabaseHelper.readData<String>('current_username') ?? 'Anonymous';
 
-    // Load user-specific data
     List<dynamic>? savedImageBase64s = DatabaseHelper.readData<List<dynamic>>(
-      '${username.value}_uploaded_images',
+      '${state.username.value}_uploaded_images',
     );
     if (savedImageBase64s != null) {
-      uploadedImages.value = savedImageBase64s.map((e) => e as String).toList();
+      state.uploadedImages.value =
+          savedImageBase64s.map((e) => e as String).toList();
     } else {
-      uploadedImages.clear();
+      state.uploadedImages.clear();
     }
 
     List<dynamic>? savedTimestamps = DatabaseHelper.readData<List<dynamic>>(
-      '${username.value}_uploaded_image_timestamps',
+      '${state.username.value}_uploaded_image_timestamps',
     );
     if (savedTimestamps != null) {
-      uploadedImageTimestamps.value =
+      state.uploadedImageTimestamps.value =
           savedTimestamps.map((e) => DateTime.parse(e as String)).toList();
     } else {
-      uploadedImageTimestamps.clear();
+      state.uploadedImageTimestamps.clear();
     }
 
     List<dynamic>? savedCaptions = DatabaseHelper.readData<List<dynamic>>(
-      '${username.value}_uploaded_image_captions',
+      '${state.username.value}_uploaded_image_captions',
     );
     if (savedCaptions != null) {
-      uploadedImageCaptions.value =
+      state.uploadedImageCaptions.value =
           savedCaptions.map((e) => e as String).toList();
     } else {
-      uploadedImageCaptions.clear();
+      state.uploadedImageCaptions.clear();
     }
 
     List<dynamic>? savedUploadedIsLikedList =
         DatabaseHelper.readData<List<dynamic>>(
-          '${username.value}_uploaded_post_liked_status',
+          '${state.username.value}_uploaded_post_liked_status',
         );
     if (savedUploadedIsLikedList != null) {
-      uploadedImageIsLikedList.value =
+      state.uploadedImageIsLikedList.value =
           savedUploadedIsLikedList.map((e) => e as bool).toList();
     } else {
-      uploadedImageIsLikedList.clear();
+      state.uploadedImageIsLikedList.clear();
     }
 
     List<dynamic>? savedUploadedLikeCounts =
         DatabaseHelper.readData<List<dynamic>>(
-          '${username.value}_uploaded_post_like_counts',
+          '${state.username.value}_uploaded_post_like_counts',
         );
     if (savedUploadedLikeCounts != null) {
-      uploadedImageLikeCounts.value =
+      state.uploadedImageLikeCounts.value =
           savedUploadedLikeCounts.map((e) => e as int).toList();
     } else {
-      uploadedImageLikeCounts.clear();
+      state.uploadedImageLikeCounts.clear();
     }
 
     List<dynamic>? savedUploadedComments =
         DatabaseHelper.readData<List<dynamic>>(
-          '${username.value}_uploaded_post_comments',
+          '${state.username.value}_uploaded_post_comments',
         );
     if (savedUploadedComments != null) {
-      uploadedImageComments.value = _convertCommentData(savedUploadedComments);
+      state.uploadedImageComments.value = _convertCommentData(
+        savedUploadedComments,
+      );
     } else {
-      uploadedImageComments.clear();
+      state.uploadedImageComments.clear();
     }
 
-    // Load global dummy post data
     List<dynamic>? savedIsLikedList = DatabaseHelper.readData<List<dynamic>>(
-      'dummy_post_liked_status',
+      '${state.username.value}_dummy_post_liked_status',
     );
     if (savedIsLikedList != null && savedIsLikedList.length >= 8) {
-      isLikedList.value = savedIsLikedList
+      state.isLikedList.value = savedIsLikedList
           .map((e) => e as bool)
           .toList()
           .sublist(0, 8);
     } else {
-      isLikedList.value = List<bool>.generate(
+      state.isLikedList.value = List<bool>.generate(
         8,
         (index) =>
             savedIsLikedList != null && index < savedIsLikedList.length
@@ -145,18 +117,18 @@ class FeedLogic extends GetxController {
                 : false,
       );
     }
-    print('Loaded dummy_post_liked_status: ${isLikedList.value}');
+    // print('Loaded dummy_post_liked_status: ${state.isLikedList.value}');
 
     List<dynamic>? savedLikeCounts = DatabaseHelper.readData<List<dynamic>>(
-      'dummy_post_like_counts',
+      '${state.username.value}_dummy_post_like_counts',
     );
     if (savedLikeCounts != null && savedLikeCounts.length >= 8) {
-      likeCounts.value = savedLikeCounts
+      state.likeCounts.value = savedLikeCounts
           .map((e) => e as int)
           .toList()
           .sublist(0, 8);
     } else {
-      likeCounts.value = List<int>.generate(
+      state.likeCounts.value = List<int>.generate(
         8,
         (index) =>
             savedLikeCounts != null && index < savedLikeCounts.length
@@ -164,78 +136,81 @@ class FeedLogic extends GetxController {
                 : 125 + (index * 23),
       );
     }
-    print('Loaded dummy_post_like_counts: ${likeCounts.value}');
+    // print('Loaded dummy_post_like_counts: ${state.likeCounts.value}');
 
     List<dynamic>? savedDummyComments = DatabaseHelper.readData<List<dynamic>>(
       'dummy_post_comments',
     );
     if (savedDummyComments != null) {
-      dummyPostComments.value = _convertCommentData(savedDummyComments);
+      state.dummyPostComments.value = _convertCommentData(savedDummyComments);
     } else {
-      dummyPostComments.value = List<List<Map<String, String>>>.generate(
+      state.dummyPostComments.value = List<List<Map<String, String>>>.generate(
         8,
         (index) => [],
       );
     }
-    print('Loaded dummy_post_comments: ${dummyPostComments.value}');
 
-    // Ensure consistency in user-specific lists
-    if (uploadedImages.length != uploadedImageIsLikedList.length ||
-        uploadedImages.length != uploadedImageLikeCounts.length ||
-        uploadedImages.length != uploadedImageComments.length ||
-        uploadedImages.length != uploadedImageTimestamps.length ||
-        uploadedImages.length != uploadedImageCaptions.length) {
-      uploadedImageIsLikedList.value = List.generate(
-        uploadedImages.length,
+
+    if (state.uploadedImages.length != state.uploadedImageIsLikedList.length ||
+        state.uploadedImages.length != state.uploadedImageLikeCounts.length ||
+        state.uploadedImages.length != state.uploadedImageComments.length ||
+        state.uploadedImages.length != state.uploadedImageTimestamps.length ||
+        state.uploadedImages.length != state.uploadedImageCaptions.length) {
+      state.uploadedImageIsLikedList.value = List.generate(
+        state.uploadedImages.length,
         (index) => false,
       );
-      uploadedImageLikeCounts.value = List.generate(
-        uploadedImages.length,
+      state.uploadedImageLikeCounts.value = List.generate(
+        state.uploadedImages.length,
         (index) => 0,
       );
-      uploadedImageComments.value = List.generate(
-        uploadedImages.length,
+      state.uploadedImageComments.value = List.generate(
+        state.uploadedImages.length,
         (index) => [],
       );
-      uploadedImageTimestamps.value = List.generate(
-        uploadedImages.length,
+      state.uploadedImageTimestamps.value = List.generate(
+        state.uploadedImages.length,
         (index) => DateTime.now(),
       );
-      uploadedImageCaptions.value = List.generate(
-        uploadedImages.length,
+      state.uploadedImageCaptions.value = List.generate(
+        state.uploadedImages.length,
         (index) => '',
       );
-      // Save corrected lists to Hive
+
       DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_liked_status',
-        uploadedImageIsLikedList.toList(),
+        '${state.username.value}_uploaded_post_liked_status',
+        state.uploadedImageIsLikedList.toList(),
       );
       DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_like_counts',
-        uploadedImageLikeCounts.toList(),
+        '${state.username.value}_uploaded_post_like_counts',
+        state.uploadedImageLikeCounts.toList(),
       );
       DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_comments',
-        uploadedImageComments.map((e) => e.map((x) => x).toList()).toList(),
+        '${state.username.value}_uploaded_post_comments',
+        state.uploadedImageComments
+            .map((e) => e.map((x) => x).toList())
+            .toList(),
       );
       DatabaseHelper.updateData(
-        '${username.value}_uploaded_image_timestamps',
-        uploadedImageTimestamps.map((e) => e.toIso8601String()).toList(),
+        '${state.username.value}_uploaded_image_timestamps',
+        state.uploadedImageTimestamps.map((e) => e.toIso8601String()).toList(),
       );
       DatabaseHelper.updateData(
-        '${username.value}_uploaded_image_captions',
-        uploadedImageCaptions.toList(),
+        '${state.username.value}_uploaded_image_captions',
+        state.uploadedImageCaptions.toList(),
       );
     }
   }
 
   Future<void> _loadDummyImages() async {
-    for (String path in _dummyImagePaths) {
+    for (String path in state.dummyImagePaths) {
       try {
         final ByteData data = await rootBundle.load(path);
-        dummyPostBase64Images.add(base64Encode(data.buffer.asUint8List()));
+        state.dummyPostBase64Images.add(
+          base64Encode(data.buffer.asUint8List()),
+        );
       } catch (e) {
-        print('Error loading dummy image from assets $path: $e');
+        // print('Error loading dummy image from assets $path: $e');
       }
     }
   }
@@ -250,71 +225,77 @@ class FeedLogic extends GetxController {
   Future<void> processImage(XFile image, String caption) async {
     final base64Image = await DatabaseHelper.imageToBase64(image);
     if (base64Image != null) {
-      uploadedImages.insert(0, base64Image);
-      uploadedImageIsLikedList.insert(0, false);
-      uploadedImageLikeCounts.insert(0, 0);
-      uploadedImageComments.insert(0, []);
-      uploadedImageTimestamps.insert(0, DateTime.now());
-      uploadedImageCaptions.insert(0, caption.trim());
+      state.uploadedImages.insert(0, base64Image);
+      state.uploadedImageIsLikedList.insert(0, false);
+      state.uploadedImageLikeCounts.insert(0, 0);
+      state.uploadedImageComments.insert(0, []);
+      state.uploadedImageTimestamps.insert(0, DateTime.now());
+      state.uploadedImageCaptions.insert(0, caption.trim());
 
       await DatabaseHelper.updateData(
-        '${username.value}_uploaded_images',
-        uploadedImages.toList(),
+        '${state.username.value}_uploaded_images',
+        state.uploadedImages.toList(),
       );
       await DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_liked_status',
-        uploadedImageIsLikedList.toList(),
+        '${state.username.value}_uploaded_post_liked_status',
+        state.uploadedImageIsLikedList.toList(),
       );
       await DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_like_counts',
-        uploadedImageLikeCounts.toList(),
+        '${state.username.value}_uploaded_post_like_counts',
+        state.uploadedImageLikeCounts.toList(),
       );
       await DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_comments',
-        uploadedImageComments.map((e) => e.map((x) => x).toList()).toList(),
+        '${state.username.value}_uploaded_post_comments',
+        state.uploadedImageComments
+            .map((e) => e.map((x) => x).toList())
+            .toList(),
       );
       await DatabaseHelper.updateData(
-        '${username.value}_uploaded_image_timestamps',
-        uploadedImageTimestamps.map((e) => e.toIso8601String()).toList(),
+        '${state.username.value}_uploaded_image_timestamps',
+        state.uploadedImageTimestamps.map((e) => e.toIso8601String()).toList(),
       );
       await DatabaseHelper.updateData(
-        '${username.value}_uploaded_image_captions',
-        uploadedImageCaptions.toList(),
+        '${state.username.value}_uploaded_image_captions',
+        state.uploadedImageCaptions.toList(),
       );
     }
   }
 
   void onLikeTapped(int index) {
-    if (index >= 0 && index < isLikedList.length) {
-      if (isLikedList[index]) {
-        likeCounts[index]--;
+    if (index >= 0 && index < state.isLikedList.length) {
+      if (state.isLikedList[index]) {
+        state.likeCounts[index]--;
       } else {
-        likeCounts[index]++;
+        state.likeCounts[index]++;
       }
-      isLikedList[index] = !isLikedList[index];
+      state.isLikedList[index] = !state.isLikedList[index];
       DatabaseHelper.updateData(
-        'dummy_post_liked_status',
-        isLikedList.toList(),
+        '${state.username.value}_dummy_post_liked_status',
+        state.isLikedList.toList(),
       );
-      DatabaseHelper.updateData('dummy_post_like_counts', likeCounts.toList());
+      DatabaseHelper.updateData(
+        '${state.username.value}_dummy_post_like_counts',
+        state.likeCounts.toList(),
+      );
     }
   }
 
   void onUploadedImageLikeTapped(int index) {
-    if (index >= 0 && index < uploadedImageIsLikedList.length) {
-      if (uploadedImageIsLikedList[index]) {
-        uploadedImageLikeCounts[index]--;
+    if (index >= 0 && index < state.uploadedImageIsLikedList.length) {
+      if (state.uploadedImageIsLikedList[index]) {
+        state.uploadedImageLikeCounts[index]--;
       } else {
-        uploadedImageLikeCounts[index]++;
+        state.uploadedImageLikeCounts[index]++;
       }
-      uploadedImageIsLikedList[index] = !uploadedImageIsLikedList[index];
+      state.uploadedImageIsLikedList[index] =
+          !state.uploadedImageIsLikedList[index];
       DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_liked_status',
-        uploadedImageIsLikedList.toList(),
+        '${state.username.value}_uploaded_post_liked_status',
+        state.uploadedImageIsLikedList.toList(),
       );
       DatabaseHelper.updateData(
-        '${username.value}_uploaded_post_like_counts',
-        uploadedImageLikeCounts.toList(),
+        '${state.username.value}_uploaded_post_like_counts',
+        state.uploadedImageLikeCounts.toList(),
       );
     }
   }
@@ -334,8 +315,8 @@ class FeedLogic extends GetxController {
     final timestamp = DateTime.now().toIso8601String();
     final commentData = {
       'username':
-          username.value.isNotEmpty
-              ? username.value
+          state.username.value.isNotEmpty
+              ? state.username.value
               : (isUploadedImagePost
                   ? 'Anonymous'
                   : 'user_${(postIndex + 1).toString().padLeft(2, '0')}'),
@@ -344,22 +325,24 @@ class FeedLogic extends GetxController {
     };
 
     if (isUploadedImagePost) {
-      if (postIndex >= 0 && postIndex < uploadedImageComments.length) {
-        uploadedImageComments[postIndex].add(commentData);
-        uploadedImageComments.refresh();
+      if (postIndex >= 0 && postIndex < state.uploadedImageComments.length) {
+        state.uploadedImageComments[postIndex].add(commentData);
+        state.uploadedImageComments.refresh();
         DatabaseHelper.updateData(
-          '${username.value}_uploaded_post_comments',
-          uploadedImageComments.map((e) => e.map((x) => x).toList()).toList(),
+          '${state.username.value}_uploaded_post_comments',
+          state.uploadedImageComments
+              .map((e) => e.map((x) => x).toList())
+              .toList(),
         );
         print('Added comment to uploaded post $postIndex: $commentData');
       }
     } else {
-      if (postIndex >= 0 && postIndex < dummyPostComments.length) {
-        dummyPostComments[postIndex].add(commentData);
-        dummyPostComments.refresh();
+      if (postIndex >= 0 && postIndex < state.dummyPostComments.length) {
+        state.dummyPostComments[postIndex].add(commentData);
+        state.dummyPostComments.refresh();
         DatabaseHelper.updateData(
           'dummy_post_comments',
-          dummyPostComments.map((e) => e.map((x) => x).toList()).toList(),
+          state.dummyPostComments.map((e) => e.map((x) => x).toList()).toList(),
         );
         print('Added comment to dummy post $postIndex: $commentData');
       }
@@ -368,13 +351,13 @@ class FeedLogic extends GetxController {
 
   Future<void> showLogoutDialog() async {
     await DatabaseHelper.deleteData(AppConstant.isLogin);
-    username.value = 'Anonymous';
-    uploadedImages.clear();
-    uploadedImageTimestamps.clear();
-    uploadedImageCaptions.clear();
-    uploadedImageIsLikedList.clear();
-    uploadedImageLikeCounts.clear();
-    uploadedImageComments.clear();
+    state.username.value = 'Anonymous';
+    state.uploadedImages.clear();
+    state.uploadedImageTimestamps.clear();
+    state.uploadedImageCaptions.clear();
+    state.uploadedImageIsLikedList.clear();
+    state.uploadedImageLikeCounts.clear();
+    state.uploadedImageComments.clear();
     Get.offAll(() => LoginPage());
   }
 
@@ -400,66 +383,35 @@ class FeedLogic extends GetxController {
 
   Future<bool> requestStoragePermission() async {
     if (kIsWeb) {
-      return true; // No permissions needed for web
-    }
-
-    PermissionStatus status;
-    if (Platform.isAndroid) {
-      final androidInfo = await DeviceInfoPlugin().androidInfo;
-      if (androidInfo.version.sdkInt >= 33) {
-        status = await Permission.photos.request();
-      } else {
-        status = await Permission.storage.request();
-      }
-    } else if (Platform.isIOS) {
-      status = await Permission.photos.request();
-    } else {
-      return true; // Other platforms (e.g., desktop) may not need permissions
-    }
-
-    if (status.isGranted) {
       return true;
-    } else if (status.isPermanentlyDenied) {
-      await Get.defaultDialog(
-        title: 'Permission Required',
-        middleText:
-            'Storage permission is needed to save images. Please enable it in settings.',
-        confirmTextColor: Colors.white,
-        radius: 12,
-        onConfirm: () async {
-          await openAppSettings();
-          Get.back();
-        },
-        onCancel: () => Get.back(),
-        buttonColor: AppColors.primary,
-        cancelTextColor: AppColors.primary,
-        titleStyle: AppTextStyles.h6.copyWith(fontWeight: FontWeight.bold),
-        middleTextStyle: AppTextStyles.bodyMedium,
-      );
-      return false;
-    } else {
-      bool retry = false;
-      await Get.defaultDialog(
-        title: 'Permission Denied',
-        middleText:
-            'Storage permission is needed to save images. Would you like to try again?',
-        confirmTextColor: Colors.white,
-        radius: 12,
-        onConfirm: () {
-          retry = true;
-          Get.back();
-        },
-        onCancel: () => Get.back(),
-        buttonColor: AppColors.primary,
-        cancelTextColor: AppColors.primary,
-        titleStyle: AppTextStyles.h6.copyWith(fontWeight: FontWeight.bold),
-        middleTextStyle: AppTextStyles.bodyMedium,
-      );
+    }
 
-      if (retry) {
-        return await requestStoragePermission();
+    final hasAccess = await Gal.hasAccess(toAlbum: false);
+    if (hasAccess) {
+      return true;
+    } else {
+      try {
+        await Gal.requestAccess(toAlbum: false);
+        return true;
+      } on GalException catch (e) {
+        Get.snackbar(
+          'Error',
+          'Permission denied to access gallery: ${e.type.message}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      } catch (e) {
+        Get.snackbar(
+          'Error',
+          'Failed to request gallery access: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
       }
-      return false;
     }
   }
 
@@ -468,26 +420,20 @@ class FeedLogic extends GetxController {
       if (!kIsWeb) {
         final hasPermission = await requestStoragePermission();
         if (!hasPermission) {
-          Get.snackbar(
-            'Error',
-            'Cannot download image without storage permission.',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-          return;
+          return; // Permission denied, snackbar already shown in requestStoragePermission
         }
       }
 
       String? base64Image;
       if (isUploadedImagePost) {
-        if (index >= 0 && index < uploadedImages.length) {
-          base64Image = uploadedImages[index];
+        if (index >= 0 && index < state.uploadedImages.length) {
+          base64Image = state.uploadedImages[index];
         }
       } else {
-        if (index >= 0 && index < dummyPostBase64Images.length) {
+        if (index >= 0 && index < state.dummyPostBase64Images.length) {
           base64Image =
-              dummyPostBase64Images[index % dummyPostBase64Images.length];
+              state.dummyPostBase64Images[index %
+                  state.dummyPostBase64Images.length];
         }
       }
 
@@ -502,17 +448,11 @@ class FeedLogic extends GetxController {
         return;
       }
 
+      final bytes = base64Decode(base64Image);
+
       if (kIsWeb) {
-        final bytes = base64Decode(base64Image);
         final blob = html.Blob([bytes]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor =
-            html.AnchorElement(href: url)
-              ..setAttribute(
-                'download',
-                'image_${DateTime.now().millisecondsSinceEpoch}.png',
-              )
-              ..click();
         html.Url.revokeObjectUrl(url);
         Get.snackbar(
           'Success',
@@ -522,29 +462,23 @@ class FeedLogic extends GetxController {
           colorText: Colors.white,
         );
       } else {
-        final directory = await getDownloadsDirectory();
-        if (directory == null) {
-          Get.snackbar(
-            'Error',
-            'Downloads directory not available.',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-          return;
-        }
-        final fileName = 'image_${DateTime.now().millisecondsSinceEpoch}.png';
-        final filePath = '${directory.path}/$fileName';
-        final bytes = base64Decode(base64Image);
-        await File(filePath).writeAsBytes(bytes);
+        await Gal.putImageBytes(Uint8List.fromList(bytes));
         Get.snackbar(
           'Success',
-          'Image saved to $filePath',
+          'Image saved to gallery.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
       }
+    } on GalException catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to save image to gallery: ${e.type.message}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } catch (e) {
       Get.snackbar(
         'Error',
