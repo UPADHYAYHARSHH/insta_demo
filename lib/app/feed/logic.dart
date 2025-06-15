@@ -333,6 +333,7 @@ class FeedLogic extends GetxController {
           state.uploadedImageComments
               .map((e) => e.map((x) => x).toList())
               .toList(),
+
         );
         print('Added comment to uploaded post $postIndex: $commentData');
       }
