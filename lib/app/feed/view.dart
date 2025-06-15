@@ -95,31 +95,25 @@ class FeedPage extends StatelessWidget {
                 : Column(
                   children: [
                     Expanded(
-                      child: RefreshIndicator(
-                        color: AppColors.primary,
-                        onRefresh: () async {
-                          await Future.delayed(const Duration(seconds: 1));
-                        },
-                        child: Obx(
-                          () => ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            itemCount:
-                                logic.uploadedImages.length +
-                                logic.state.dummyPostCount,
-                            itemBuilder: (context, index) {
-                              if (index < logic.uploadedImages.length) {
-                                return buildUploadedImagePost(
-                                  context,
-                                  logic.uploadedImages[index],
-                                  index,
-                                );
-                              } else {
-                                int dummyPostIndex =
-                                    index - logic.uploadedImages.length;
-                                return buildPostCard(context, dummyPostIndex);
-                              }
-                            },
-                          ),
+                      child: Obx(
+                        () => ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount:
+                              logic.uploadedImages.length +
+                              logic.state.dummyPostCount,
+                          itemBuilder: (context, index) {
+                            if (index < logic.uploadedImages.length) {
+                              return buildUploadedImagePost(
+                                context,
+                                logic.uploadedImages[index],
+                                index,
+                              );
+                            } else {
+                              int dummyPostIndex =
+                                  index - logic.uploadedImages.length;
+                              return buildPostCard(context, dummyPostIndex);
+                            }
+                          },
                         ),
                       ),
                     ),
@@ -173,8 +167,8 @@ class FeedPage extends StatelessWidget {
                       color: AppColors.white,
                     ),
                     child: CircleAvatar(
-                      backgroundImage: NetworkImage(
-                        'https://picsum.photos/40/40',
+                      backgroundImage: AssetImage(
+                        'assets/images/joshua-reddekopp-SyYmXSDnJ54-unsplash.jpg',
                       ),
                     ),
                   ),
@@ -209,18 +203,20 @@ class FeedPage extends StatelessWidget {
               topLeft: Radius.circular(0),
               topRight: Radius.circular(0),
             ),
-            child: Image.network(
-              'https://picsum.photos/400/300',
+            child: Image.memory(
+              base64Decode(
+                logic.dummyPostBase64Images[index %
+                    logic.dummyPostBase64Images.length],
+              ),
               fit: BoxFit.cover,
               width: double.infinity,
               height: 250,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
+              errorBuilder: (context, error, stackTrace) {
                 return Container(
                   height: 250,
                   color: AppColors.grey100,
                   child: const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: Icon(Icons.error, color: AppColors.error),
                   ),
                 );
               },
@@ -337,8 +333,8 @@ class FeedPage extends StatelessWidget {
                       color: AppColors.white,
                     ),
                     child: CircleAvatar(
-                      backgroundImage: NetworkImage(
-                        'https://picsum.photos/40/40',
+                      backgroundImage:AssetImage(
+                        'assets/images/joshua-reddekopp-SyYmXSDnJ54-unsplash.jpg',
                       ),
                     ),
                   ),

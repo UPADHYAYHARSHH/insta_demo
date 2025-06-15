@@ -12,6 +12,8 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:universal_html/html.dart' as html;
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:typed_data';
 
 import '../../utils/app_colors.dart';
 import '../../utils/text_styles.dart' show AppTextStyles;
@@ -31,6 +33,16 @@ class FeedLogic extends GetxController {
       List<List<Map<String, String>>>.generate(8, (index) => []).obs;
   var uploadedImageComments = <List<Map<String, String>>>[].obs;
   var isLoadingInitialData = true.obs; // New loading indicator for initial data
+  var dummyPostBase64Images =
+      <String>[].obs; // Store base64 strings of dummy images
+
+  final List<String> _dummyImagePaths = [
+    'assets/images/joshua-reddekopp-SyYmXSDnJ54-unsplash.jpg',
+    'assets/images/mohammad-rahmani-LrxSl4ZxoRs-unsplash.jpg',
+    'assets/images/arnold-francisca-f77Bh3inUpE-unsplash.jpg',
+    'assets/images/rear-view-programmer-working-all-night-long.jpg',
+    'assets/images/computer-program-coding-screen.jpg',
+  ];
 
   final ImagePicker _picker = ImagePicker();
 
@@ -39,6 +51,7 @@ class FeedLogic extends GetxController {
     super.onInit();
     await DatabaseHelper.init(); // Ensure Hive is initialized
     _loadDataFromHive();
+    await _loadDummyImages(); // Load dummy images from assets
     isLoadingInitialData.value = false; // Set to false after initial data load
   }
 
@@ -213,6 +226,17 @@ class FeedLogic extends GetxController {
         '${username.value}_uploaded_image_captions',
         uploadedImageCaptions.toList(),
       );
+    }
+  }
+
+  Future<void> _loadDummyImages() async {
+    for (String path in _dummyImagePaths) {
+      try {
+        final ByteData data = await rootBundle.load(path);
+        dummyPostBase64Images.add(base64Encode(data.buffer.asUint8List()));
+      } catch (e) {
+        print('Error loading dummy image from assets $path: $e');
+      }
     }
   }
 
@@ -461,22 +485,9 @@ class FeedLogic extends GetxController {
           base64Image = uploadedImages[index];
         }
       } else {
-        if (index >= 0 && index < 8) {
-          final response = await http.get(
-            Uri.parse('https://picsum.photos/400/300'),
-          );
-          if (response.statusCode == 200) {
-            base64Image = base64Encode(response.bodyBytes);
-          } else {
-            Get.snackbar(
-              'Error',
-              'Failed to fetch dummy image.',
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-            );
-            return;
-          }
+        if (index >= 0 && index < dummyPostBase64Images.length) {
+          base64Image =
+              dummyPostBase64Images[index % dummyPostBase64Images.length];
         }
       }
 
@@ -511,7 +522,17 @@ class FeedLogic extends GetxController {
           colorText: Colors.white,
         );
       } else {
-        final directory = await getApplicationDocumentsDirectory();
+        final directory = await getDownloadsDirectory();
+        if (directory == null) {
+          Get.snackbar(
+            'Error',
+            'Downloads directory not available.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return;
+        }
         final fileName = 'image_${DateTime.now().millisecondsSinceEpoch}.png';
         final filePath = '${directory.path}/$fileName';
         final bytes = base64Decode(base64Image);
